@@ -1,0 +1,1067 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>떼리앙 블라스트 🎮</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Jua&family=Nanum+Gothic:wght@700;800&display=swap');
+
+  :root {
+    --bg: #fff8e7;
+    --accent: #ffb347;
+    --accent2: #ff6b6b;
+    --board-bg: #ffe4b5;
+    --cell-bg: rgba(255,255,255,0.6);
+    --cell-border: #f0c060;
+    --shadow: 0 8px 32px rgba(255,140,0,0.18);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: linear-gradient(135deg, #fffbe7 0%, #ffe4b5 50%, #ffd6a5 100%);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Jua', sans-serif;
+    overflow-x: hidden;
+    position: relative;
+    padding: 12px 0 20px;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background:
+      radial-gradient(circle at 20% 20%, rgba(255,200,100,0.2) 0%, transparent 50%),
+      radial-gradient(circle at 80% 80%, rgba(255,150,100,0.15) 0%, transparent 50%);
+    pointer-events: none;
+  }
+
+  /* ── INFO BAR ── */
+  .info-bar {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    background: white;
+    border-radius: 20px;
+    border: 3px solid #ffcc66;
+    box-shadow: 0 6px 24px rgba(255,140,0,0.18), inset 0 2px 6px rgba(255,220,120,0.2);
+    padding: 10px 18px;
+    margin-bottom: 14px;
+    width: fit-content;
+    max-width: 700px;
+  }
+
+  .info-char {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 0 14px;
+    position: relative;
+    transition: transform 0.18s;
+    cursor: default;
+  }
+
+  .info-char:not(:last-child)::after {
+    content: '';
+    position: absolute;
+    right: 0;
+    top: 10%;
+    height: 80%;
+    width: 1.5px;
+    background: linear-gradient(to bottom, transparent, #ffcc66, transparent);
+  }
+
+  .info-char:hover { transform: translateY(-4px) scale(1.08); }
+
+  .info-char img {
+    width: 52px;
+    height: 52px;
+    object-fit: contain;
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.10));
+  }
+
+  .info-char .char-name {
+    font-size: 0.68rem;
+    color: #b06000;
+    margin-top: 4px;
+    text-align: center;
+    line-height: 1.1;
+    letter-spacing: -0.3px;
+    white-space: nowrap;
+  }
+
+  /* ── TITLE ── */
+  h1 {
+    font-size: 2.6rem;
+    color: #e06000;
+    text-shadow: 3px 3px 0 #ffb347, 5px 5px 0 rgba(255,140,0,0.2);
+    margin-bottom: 10px;
+    letter-spacing: 2px;
+    animation: titleBounce 2s ease-in-out infinite;
+  }
+
+  @keyframes titleBounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-6px); }
+  }
+
+  /* ── SCORE BAR ── */
+  .scorebar {
+    display: flex;
+    gap: 20px;
+    align-items: center;
+    margin-bottom: 12px;
+  }
+
+  .score-box {
+    background: white;
+    border-radius: 16px;
+    padding: 8px 22px;
+    box-shadow: 0 4px 16px rgba(255,140,0,0.18), inset 0 -3px 0 rgba(255,140,0,0.3);
+    text-align: center;
+    border: 2px solid #ffb347;
+  }
+
+  .score-box .label { font-size: 0.75rem; color: #c07000; }
+  .score-box .value { font-size: 1.5rem; color: #e06000; font-weight: bold; }
+
+  .timer-box {
+    background: linear-gradient(135deg, #ff6b6b, #ff4444);
+    border-radius: 16px;
+    padding: 8px 22px;
+    color: white;
+    box-shadow: 0 4px 16px rgba(255,80,80,0.3), inset 0 -3px 0 rgba(0,0,0,0.15);
+    text-align: center;
+    border: 2px solid #ff4444;
+  }
+
+  .timer-box .label { font-size: 0.75rem; color: rgba(255,255,255,0.85); }
+  .timer-box .value { font-size: 1.5rem; color: white; font-weight: bold; }
+
+  /* ── TIMER BAR ── */
+  .timer-bar-wrap {
+    width: 504px;
+    height: 14px;
+    background: rgba(255,200,100,0.3);
+    border-radius: 8px;
+    margin-bottom: 12px;
+    overflow: hidden;
+    border: 2px solid #ffcc66;
+  }
+
+  #timer-bar {
+    height: 100%;
+    background: linear-gradient(90deg, #ffb347, #ff6b6b);
+    border-radius: 8px;
+    transition: width 1s linear;
+  }
+
+  /* ── BOARD ── */
+  .board-wrap {
+    background: white;
+    border-radius: 28px;
+    padding: 14px;
+    box-shadow: 0 12px 48px rgba(255,140,0,0.22), inset 0 2px 8px rgba(255,200,100,0.3);
+    border: 3px solid #ffcc66;
+    position: relative;
+  }
+
+  #board {
+    display: grid;
+    grid-template-columns: repeat(7, 72px);
+    grid-template-rows: repeat(7, 72px);
+    gap: 4px;
+    position: relative;
+  }
+
+  .cell {
+    width: 72px;
+    height: 72px;
+    border-radius: 16px;
+    background: rgba(255,240,200,0.5);
+    border: 2px solid rgba(255,200,80,0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    position: relative;
+    transition: transform 0.1s, box-shadow 0.1s;
+    overflow: hidden;
+  }
+
+  .cell:hover { filter: brightness(1.08); }
+
+  .cell img {
+    width: 62px;
+    height: 62px;
+    object-fit: contain;
+    pointer-events: none;
+    transition: transform 0.15s;
+    user-select: none;
+    -webkit-user-drag: none;
+  }
+
+  .cell.selected {
+    box-shadow: 0 0 0 3px #ff6b6b, 0 0 18px rgba(255,80,80,0.5);
+    background: rgba(255,220,200,0.7);
+    transform: scale(1.08);
+    z-index: 10;
+  }
+
+  .cell.matched { animation: popMatch 0.35s ease forwards; }
+
+  @keyframes popMatch {
+    0% { transform: scale(1); opacity: 1; }
+    40% { transform: scale(1.25); opacity: 1; }
+    100% { transform: scale(0); opacity: 0; }
+  }
+
+  .cell.falling { animation: fallIn 0.25s ease-out; }
+
+  @keyframes fallIn {
+    0% { transform: translateY(-72px); opacity: 0; }
+    100% { transform: translateY(0); opacity: 1; }
+  }
+
+  .cell.swap-right { animation: swapRight 0.2s ease; }
+  .cell.swap-left  { animation: swapLeft  0.2s ease; }
+  .cell.swap-up    { animation: swapUp    0.2s ease; }
+  .cell.swap-down  { animation: swapDown  0.2s ease; }
+
+  @keyframes swapRight { 0%{transform:translateX(0)} 50%{transform:translateX(76px)} 100%{transform:translateX(0)} }
+  @keyframes swapLeft  { 0%{transform:translateX(0)} 50%{transform:translateX(-76px)} 100%{transform:translateX(0)} }
+  @keyframes swapUp    { 0%{transform:translateY(0)} 50%{transform:translateY(-76px)} 100%{transform:translateY(0)} }
+  @keyframes swapDown  { 0%{transform:translateY(0)} 50%{transform:translateY(76px)} 100%{transform:translateY(0)} }
+
+  /* ── FLOATING SCORE ── */
+  .score-pop {
+    position: fixed;
+    font-size: 1.6rem;
+    color: #e06000;
+    font-family: 'Jua', sans-serif;
+    font-weight: bold;
+    pointer-events: none;
+    z-index: 999;
+    text-shadow: 2px 2px 0 #ffcc66;
+    animation: scorePop 0.9s ease forwards;
+  }
+
+  @keyframes scorePop {
+    0%   { opacity: 1; transform: translateY(0) scale(1); }
+    100% { opacity: 0; transform: translateY(-80px) scale(1.5); }
+  }
+
+  .combo-text {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 3rem;
+    color: #ff4444;
+    text-shadow: 3px 3px 0 #ffb347;
+    pointer-events: none;
+    z-index: 998;
+    animation: comboPop 0.7s ease forwards;
+  }
+
+  @keyframes comboPop {
+    0%   { opacity: 0; transform: translate(-50%,-50%) scale(0.5); }
+    40%  { opacity: 1; transform: translate(-50%,-50%) scale(1.2); }
+    100% { opacity: 0; transform: translate(-50%,-70%) scale(1); }
+  }
+
+  /* ── OVERLAY ── */
+  #overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.55);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    backdrop-filter: blur(6px);
+  }
+
+  #overlay.hidden { display: none; }
+
+  .overlay-card {
+    background: white;
+    border-radius: 32px;
+    padding: 40px 50px;
+    text-align: center;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    border: 4px solid #ffcc66;
+    animation: cardPop 0.4s cubic-bezier(0.34,1.56,0.64,1);
+  }
+
+  @keyframes cardPop {
+    0% { transform: scale(0.5); opacity: 0; }
+    100% { transform: scale(1); opacity: 1; }
+  }
+
+  .overlay-card h2 { font-size: 2.4rem; color: #e06000; margin-bottom: 12px; }
+  .overlay-card p  { font-size: 1.1rem; color: #888; margin-bottom: 24px; }
+  .overlay-card .final-score { font-size: 3rem; color: #ff6b6b; margin: 10px 0 20px; font-weight: bold; }
+
+  .btn {
+    background: linear-gradient(135deg, #ffb347, #e06000);
+    color: white;
+    border: none;
+    border-radius: 20px;
+    padding: 14px 40px;
+    font-size: 1.3rem;
+    font-family: 'Jua', sans-serif;
+    cursor: pointer;
+    box-shadow: 0 6px 0 #c05000, 0 8px 20px rgba(255,140,0,0.3);
+    transition: all 0.1s;
+    letter-spacing: 1px;
+  }
+
+  .btn:hover  { filter: brightness(1.08); }
+  .btn:active { transform: translateY(3px); box-shadow: 0 3px 0 #c05000; }
+
+  .hint { font-size: 0.85rem; color: #bbb; margin-top: 10px; }
+
+  /* ── COUPON OVERLAY ── */
+  #coupon-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(20,8,4,0.75);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1100;
+    backdrop-filter: blur(10px);
+  }
+  #coupon-overlay.hidden { display: none; }
+
+  .coupon-wrap {
+    animation: cardPop 0.45s cubic-bezier(0.34,1.56,0.64,1);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+    position: relative;
+  }
+
+  .coupon-characters {
+    width: 300px;
+    object-fit: contain;
+    position: relative;
+    z-index: 10;
+    margin-bottom: -28px;
+    filter: drop-shadow(0 0 18px rgba(255,100,80,0.35));
+    animation: charFloat 2.4s ease-in-out infinite;
+  }
+
+  @keyframes charFloat {
+    0%, 100% { transform: translateY(0) rotate(-1deg); }
+    50%       { transform: translateY(-10px) rotate(1deg); }
+  }
+
+  /* 쿠폰 카드 — 세로로 길쭉한 테이크아웃 티켓 */
+  .coupon-card {
+    width: 360px;
+    background: #fffdf8;
+    border-radius: 20px;
+    box-shadow: 0 28px 70px rgba(0,0,0,0.5);
+    overflow: visible;
+    position: relative;
+  }
+
+  /* 상단 컬러 헤더 */
+  .coupon-top {
+    background: #d63031;
+    border-radius: 20px 20px 0 0;
+    padding: 22px 28px 48px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* 물결 구분선 */
+  .coupon-top::after {
+    content: '';
+    position: absolute;
+    bottom: -1px; left: 0; right: 0;
+    height: 32px;
+    background: #fffdf8;
+    clip-path: ellipse(55% 100% at 50% 100%);
+  }
+
+  /* 대각선 줄무늬 배경 */
+  .coupon-top::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(
+      -45deg,
+      transparent,
+      transparent 18px,
+      rgba(255,255,255,0.04) 18px,
+      rgba(255,255,255,0.04) 36px
+    );
+  }
+
+  .coupon-store-tag {
+    font-size: 0.7rem;
+    color: rgba(255,255,255,0.6);
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+
+  /* 메뉴명이 주인공 */
+  .coupon-menu-name {
+    font-size: 2rem;
+    color: #fff;
+    line-height: 1.15;
+    letter-spacing: -0.5px;
+    margin-bottom: 2px;
+    text-shadow: 0 2px 8px rgba(0,0,0,0.2);
+  }
+
+  .coupon-menu-sub {
+    font-size: 0.8rem;
+    color: rgba(255,255,255,0.65);
+    letter-spacing: 1px;
+    margin-bottom: 14px;
+  }
+
+  /* 할인율 — 오른쪽 하단 강조 */
+  .coupon-discount-row {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+  }
+
+  .coupon-reward-label {
+    background: rgba(255,255,255,0.18);
+    border: 1px solid rgba(255,255,255,0.35);
+    border-radius: 8px;
+    padding: 4px 10px;
+    font-size: 0.7rem;
+    color: rgba(255,255,255,0.9);
+    letter-spacing: 1px;
+    align-self: center;
+  }
+
+  .coupon-discount-big {
+    text-align: right;
+    line-height: 1;
+  }
+
+  .coupon-discount-big .off-num {
+    font-size: 4.2rem;
+    color: #fff;
+    font-weight: 900;
+    text-shadow: 0 4px 16px rgba(0,0,0,0.25);
+    letter-spacing: -3px;
+  }
+
+  .coupon-discount-big .off-pct {
+    font-size: 1.6rem;
+    color: rgba(255,255,255,0.85);
+    letter-spacing: 0;
+  }
+
+  .coupon-discount-big .off-label {
+    display: block;
+    font-size: 0.72rem;
+    color: rgba(255,255,255,0.6);
+    letter-spacing: 2px;
+    margin-top: 2px;
+  }
+
+  /* 하단 바디 */
+  .coupon-bottom {
+    padding: 20px 28px 24px;
+  }
+
+  /* 점선 */
+  .coupon-divider {
+    border: none;
+    border-top: 2px dashed #e0d8cc;
+    margin: 0 0 18px;
+    position: relative;
+  }
+
+  /* 노치 */
+  .coupon-notch-left,
+  .coupon-notch-right {
+    position: absolute;
+    top: -13px;
+    width: 26px; height: 26px;
+    background: rgba(20,8,4,0.75);
+    border-radius: 50%;
+    z-index: 5;
+  }
+  .coupon-notch-left  { left: -13px; }
+  .coupon-notch-right { right: -13px; }
+
+  /* 코드 영역 */
+  .coupon-code-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: #fff5e6;
+    border: 1.5px dashed #f0a050;
+    border-radius: 10px;
+    padding: 10px 16px;
+    margin-bottom: 14px;
+  }
+
+  .coupon-code-label {
+    font-size: 0.7rem;
+    color: #b07030;
+    letter-spacing: 1px;
+  }
+
+  .coupon-code {
+    font-size: 1.2rem;
+    color: #c04000;
+    letter-spacing: 3px;
+    font-family: 'Nanum Gothic', sans-serif;
+    font-weight: 800;
+  }
+
+  .coupon-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 18px;
+  }
+
+  .coupon-expire {
+    font-size: 0.72rem;
+    color: #bbb;
+  }
+
+  .coupon-score-line {
+    font-size: 0.78rem;
+    color: #aaa;
+    text-align: right;
+  }
+  .coupon-score-line strong { color: #d63031; }
+
+  .coupon-buttons {
+    display: flex;
+    gap: 10px;
+  }
+
+  .btn-coupon-retry {
+    flex: 1;
+    background: white;
+    color: #888;
+    border: 1.5px solid #ddd;
+    border-radius: 12px;
+    padding: 12px 0;
+    font-size: 0.95rem;
+    font-family: 'Jua', sans-serif;
+    cursor: pointer;
+    transition: all 0.1s;
+  }
+  .btn-coupon-retry:hover { background: #f5f5f5; }
+
+  .btn-coupon-use {
+    flex: 2;
+    background: #d63031;
+    color: white;
+    border: none;
+    border-radius: 12px;
+    padding: 12px 0;
+    font-size: 0.95rem;
+    font-family: 'Jua', sans-serif;
+    cursor: pointer;
+    box-shadow: 0 4px 0 #9b1c1c;
+    transition: all 0.1s;
+    letter-spacing: 0.5px;
+  }
+  .btn-coupon-use:hover  { filter: brightness(1.08); }
+  .btn-coupon-use:active { transform: translateY(2px); box-shadow: 0 2px 0 #9b1c1c; }
+
+  /* 별 confetti */
+  .confetti-star {
+    position: fixed;
+    font-size: 1.4rem;
+    pointer-events: none;
+    z-index: 1099;
+    animation: confettiFall linear forwards;
+  }
+  @keyframes confettiFall {
+    0%   { opacity: 1; transform: translateY(0) rotate(0deg); }
+    100% { opacity: 0; transform: translateY(220px) rotate(360deg); }
+  }
+</style>
+</head>
+<body>
+
+<!-- ── CHARACTER INFO BAR ── -->
+<div class="info-bar" id="info-bar">
+  <!-- JS로 채워짐 -->
+</div>
+
+<h1>🎮 떼리앙 블라스트!</h1>
+
+<div class="scorebar">
+  <div class="score-box">
+    <div class="label">점수</div>
+    <div class="value" id="score">0</div>
+  </div>
+  <div class="score-box">
+    <div class="label">최고점수</div>
+    <div class="value" id="best">0</div>
+  </div>
+  <div class="timer-box">
+    <div class="label">남은 시간</div>
+    <div class="value" id="timer">60</div>
+  </div>
+</div>
+
+<div class="timer-bar-wrap">
+  <div id="timer-bar" style="width:100%"></div>
+</div>
+
+<div class="board-wrap">
+  <div id="board"></div>
+</div>
+
+<p class="hint">💡 같은 떼리앙 3개 이상을 연결하세요!</p>
+
+<!-- ── COUPON OVERLAY ── -->
+<div id="coupon-overlay" class="hidden">
+  <div class="coupon-wrap">
+    <img class="coupon-characters" src="토네떼링삼총사.png" alt="토네떼링 삼총사">
+    <div class="coupon-card">
+      <div class="coupon-notch-left"></div>
+      <div class="coupon-notch-right"></div>
+
+      <div class="coupon-top">
+        <div class="coupon-store-tag">TTERIAN BLAST · CLEAR REWARD</div>
+        <div class="coupon-menu-name">토네이도<br>스트로베리</div>
+        <div class="coupon-menu-sub">Tornado Strawberry</div>
+        <div class="coupon-discount-row">
+          <div class="coupon-reward-label">🍓 게임 클리어 보상</div>
+          <div class="coupon-discount-big">
+            <span class="off-num">10</span><span class="off-pct">%</span>
+            <span class="off-label">DISCOUNT</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="coupon-bottom">
+        <hr class="coupon-divider">
+        <div class="coupon-code-row">
+          <span class="coupon-code-label">COUPON CODE</span>
+          <span class="coupon-code">TTERIAN10</span>
+        </div>
+        <div class="coupon-meta">
+          <span class="coupon-expire">유효기간: 발급일로부터 30일</span>
+          <span class="coupon-score-line">🏆 <strong id="coupon-final-score">0</strong>점 달성!</span>
+        </div>
+        <div class="coupon-buttons">
+          <button class="btn-coupon-retry" id="coupon-retry-btn">다시 하기</button>
+          <button class="btn-coupon-use" id="coupon-use-btn">쿠폰 사용하기 🍓</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── OVERLAY ── -->
+<div id="overlay">
+  <div class="overlay-card">
+    <h2 id="overlay-title">떼리앙 블라스트!</h2>
+    <p id="overlay-sub">귀여운 떼리앙들을 매칭해 보세요 🎉</p>
+    <div class="final-score" id="overlay-score" style="display:none"></div>
+    <button class="btn" id="overlay-btn">게임 시작!</button>
+  </div>
+</div>
+
+<script>
+// ─────────────────────── CONFIG ───────────────────────
+const COLS = 7, ROWS = 7;
+const TOTAL_TIME = 30;
+
+// 이미지 파일은 HTML과 같은 폴더에 있어야 합니다
+const CHARS = [
+  { name: '솦떼링',   src: '솦떼링.png'   },
+  { name: '징떼링',   src: '징떼링.png'   },
+  { name: '치떼링',   src: '치떼링.png'   },
+  { name: '토네떼링', src: '토네떼링.png' },
+  { name: '포떼링',   src: '포떼링.png'   },
+  { name: '화떼링',   src: '화떼링.png'   },
+];
+
+// ─────────────────────── INFO BAR 렌더 ───────────────────────
+function renderInfoBar() {
+  const bar = document.getElementById('info-bar');
+  bar.innerHTML = '';
+  for (const ch of CHARS) {
+    const div = document.createElement('div');
+    div.className = 'info-char';
+    div.innerHTML = `
+      <img src="${ch.src}" alt="${ch.name}" draggable="false">
+      <span class="char-name">${ch.name}</span>
+    `;
+    bar.appendChild(div);
+  }
+}
+
+renderInfoBar();
+
+// ─────────────────────── STATE ───────────────────────
+let board = [];
+let selected = null;
+let score = 0;
+let best = 0;
+let timeLeft = TOTAL_TIME;
+let timerInterval = null;
+let busy = false;
+let combo = 0;
+let gameRunning = false;
+
+// ─────────────────────── DOM ───────────────────────
+const boardEl       = document.getElementById('board');
+const scoreEl       = document.getElementById('score');
+const bestEl        = document.getElementById('best');
+const timerEl       = document.getElementById('timer');
+const timerBar      = document.getElementById('timer-bar');
+const overlay       = document.getElementById('overlay');
+const overlayTitle  = document.getElementById('overlay-title');
+const overlaySub    = document.getElementById('overlay-sub');
+const overlayScore  = document.getElementById('overlay-score');
+const overlayBtn    = document.getElementById('overlay-btn');
+
+overlayBtn.addEventListener('click', startGame);
+
+document.getElementById('coupon-retry-btn').addEventListener('click', () => {
+  document.getElementById('coupon-overlay').classList.add('hidden');
+  startGame();
+});
+document.getElementById('coupon-use-btn').addEventListener('click', () => {
+  alert('쿠폰 코드 TTERIAN10 을 복사해서 사용하세요! 🍓');
+});
+
+// ─────────────────────── GAME CONTROL ───────────────────────
+function startGame() {
+  overlay.classList.add('hidden');
+  score = 0;
+  combo = 0;
+  timeLeft = TOTAL_TIME;
+  gameRunning = true;
+  timerBar.style.background = 'linear-gradient(90deg, #ffb347, #ff6b6b)';
+  updateScore();
+  updateTimer();
+  initBoard();
+  renderBoard();
+  if (timerInterval) clearInterval(timerInterval);
+  timerInterval = setInterval(tick, 1000);
+}
+
+function tick() {
+  timeLeft--;
+  updateTimer();
+  if (timeLeft <= 0) {
+    clearInterval(timerInterval);
+    gameRunning = false;
+    endGame();
+  }
+}
+
+function endGame() {
+  if (score > best) best = score;
+  bestEl.textContent = best.toLocaleString();
+
+  if (score >= 1000) {
+    // 🎉 쿠폰 팝업
+    document.getElementById('coupon-final-score').textContent = score.toLocaleString();
+    document.getElementById('coupon-overlay').classList.remove('hidden');
+    launchConfetti();
+  } else {
+    overlayTitle.textContent = '게임 오버!';
+    overlaySub.textContent = '최종 점수:';
+    overlayScore.textContent = score.toLocaleString();
+    overlayScore.style.display = 'block';
+    overlayBtn.textContent = '다시 하기!';
+    overlay.classList.remove('hidden');
+  }
+}
+
+function launchConfetti() {
+  const emojis = ['🍓','⭐','✨','🎉','🎊','💫','🌟'];
+  for (let i = 0; i < 22; i++) {
+    setTimeout(() => {
+      const el = document.createElement('div');
+      el.className = 'confetti-star';
+      el.textContent = emojis[Math.floor(Math.random() * emojis.length)];
+      el.style.left = (Math.random() * 100) + 'vw';
+      el.style.top  = (Math.random() * 40) + 'vh';
+      el.style.animationDuration = (1.2 + Math.random() * 1.2) + 's';
+      document.body.appendChild(el);
+      setTimeout(() => el.remove(), 2500);
+    }, i * 80);
+  }
+}
+
+// ─────────────────────── BOARD LOGIC ───────────────────────
+function initBoard() {
+  board = [];
+  for (let r = 0; r < ROWS; r++) {
+    board[r] = [];
+    for (let c = 0; c < COLS; c++) {
+      board[r][c] = randType();
+    }
+  }
+  for (let r = 0; r < ROWS; r++) {
+    for (let c = 0; c < COLS; c++) {
+      while (hasMatchAt(r, c)) {
+        board[r][c] = randType();
+      }
+    }
+  }
+}
+
+function randType() { return Math.floor(Math.random() * CHARS.length); }
+
+function hasMatchAt(r, c) {
+  const t = board[r][c];
+  if (c >= 2 && board[r][c-1] === t && board[r][c-2] === t) return true;
+  if (r >= 2 && board[r-1][c] === t && board[r-2][c] === t) return true;
+  return false;
+}
+
+// ─────────────────────── RENDER ───────────────────────
+function renderBoard() {
+  boardEl.innerHTML = '';
+  for (let r = 0; r < ROWS; r++) {
+    for (let c = 0; c < COLS; c++) {
+      boardEl.appendChild(createCell(r, c));
+    }
+  }
+}
+
+function createCell(r, c) {
+  const cell = document.createElement('div');
+  cell.className = 'cell';
+  cell.dataset.r = r;
+  cell.dataset.c = c;
+  if (board[r][c] !== null && board[r][c] !== undefined) {
+    const img = document.createElement('img');
+    img.src = CHARS[board[r][c]].src;
+    img.alt = CHARS[board[r][c]].name;
+    img.draggable = false;
+    cell.appendChild(img);
+  }
+  cell.addEventListener('click', () => onCellClick(r, c));
+  return cell;
+}
+
+function getCell(r, c) {
+  return boardEl.querySelector(`[data-r="${r}"][data-c="${c}"]`);
+}
+
+function updateCell(r, c) {
+  const cell = getCell(r, c);
+  if (!cell) return;
+  cell.innerHTML = '';
+  cell.addEventListener('click', () => onCellClick(r, c));
+  if (board[r][c] !== null) {
+    const img = document.createElement('img');
+    img.src = CHARS[board[r][c]].src;
+    img.alt = CHARS[board[r][c]].name;
+    img.draggable = false;
+    cell.appendChild(img);
+  }
+}
+
+// ─────────────────────── INTERACTION ───────────────────────
+function onCellClick(r, c) {
+  if (busy || !gameRunning) return;
+  if (selected === null) {
+    selected = {r, c};
+    getCell(r, c).classList.add('selected');
+  } else {
+    const {r: sr, c: sc} = selected;
+    getCell(sr, sc).classList.remove('selected');
+    if (sr === r && sc === c) { selected = null; return; }
+    const dr = Math.abs(r - sr), dc = Math.abs(c - sc);
+    if ((dr === 1 && dc === 0) || (dr === 0 && dc === 1)) {
+      selected = null;
+      trySwap(sr, sc, r, c);
+    } else {
+      selected = {r, c};
+      getCell(r, c).classList.add('selected');
+    }
+  }
+}
+
+async function trySwap(r1, c1, r2, c2) {
+  busy = true;
+  const dir1 = getSwapDir(r1, c1, r2, c2);
+  const dir2 = getSwapDir(r2, c2, r1, c1);
+  const cell1 = getCell(r1, c1);
+  const cell2 = getCell(r2, c2);
+  cell1.classList.add(`swap-${dir1}`);
+  cell2.classList.add(`swap-${dir2}`);
+  await wait(200);
+  cell1.classList.remove(`swap-${dir1}`);
+  cell2.classList.remove(`swap-${dir2}`);
+
+  [board[r1][c1], board[r2][c2]] = [board[r2][c2], board[r1][c1]];
+  const matches = findMatches();
+
+  if (matches.size === 0) {
+    [board[r1][c1], board[r2][c2]] = [board[r2][c2], board[r1][c1]];
+    cell1.classList.add(`swap-${dir2}`);
+    cell2.classList.add(`swap-${dir1}`);
+    await wait(200);
+    cell1.classList.remove(`swap-${dir2}`);
+    cell2.classList.remove(`swap-${dir1}`);
+    busy = false;
+    combo = 0;
+    return;
+  }
+
+  updateCell(r1, c1);
+  updateCell(r2, c2);
+  combo = 0;
+  await processMatches();
+  busy = false;
+}
+
+function getSwapDir(r1, c1, r2, c2) {
+  if (r2 < r1) return 'up';
+  if (r2 > r1) return 'down';
+  if (c2 < c1) return 'left';
+  return 'right';
+}
+
+async function processMatches() {
+  let matches = findMatches();
+  while (matches.size > 0) {
+    combo++;
+    if (combo >= 2) showCombo(combo);
+    addScore(matches.size * 100 * combo, matches);
+
+    for (const key of matches) {
+      const [r, c] = key.split(',').map(Number);
+      const cell = getCell(r, c);
+      if (cell) cell.classList.add('matched');
+    }
+    await wait(350);
+
+    for (const key of matches) {
+      const [r, c] = key.split(',').map(Number);
+      board[r][c] = null;
+    }
+
+    await dropTiles();
+    await fillBoard();
+    matches = findMatches();
+  }
+}
+
+function findMatches() {
+  const matched = new Set();
+  for (let r = 0; r < ROWS; r++) {
+    for (let c = 0; c <= COLS - 3; c++) {
+      const t = board[r][c];
+      if (t === null) continue;
+      if (board[r][c+1] === t && board[r][c+2] === t) {
+        let end = c + 2;
+        while (end + 1 < COLS && board[r][end+1] === t) end++;
+        for (let k = c; k <= end; k++) matched.add(`${r},${k}`);
+      }
+    }
+  }
+  for (let c = 0; c < COLS; c++) {
+    for (let r = 0; r <= ROWS - 3; r++) {
+      const t = board[r][c];
+      if (t === null) continue;
+      if (board[r+1][c] === t && board[r+2][c] === t) {
+        let end = r + 2;
+        while (end + 1 < ROWS && board[end+1][c] === t) end++;
+        for (let k = r; k <= end; k++) matched.add(`${k},${c}`);
+      }
+    }
+  }
+  return matched;
+}
+
+async function dropTiles() {
+  let dropped = false;
+  for (let c = 0; c < COLS; c++) {
+    for (let r = ROWS - 1; r > 0; r--) {
+      if (board[r][c] === null) {
+        let above = r - 1;
+        while (above >= 0 && board[above][c] === null) above--;
+        if (above >= 0) {
+          board[r][c] = board[above][c];
+          board[above][c] = null;
+          dropped = true;
+        }
+      }
+    }
+  }
+  if (dropped) renderBoard();
+  await wait(60);
+}
+
+async function fillBoard() {
+  for (let r = 0; r < ROWS; r++) {
+    for (let c = 0; c < COLS; c++) {
+      if (board[r][c] === null) {
+        board[r][c] = randType();
+        updateCell(r, c);
+        const cell = getCell(r, c);
+        if (cell) cell.classList.add('falling');
+      }
+    }
+  }
+  await wait(250);
+  document.querySelectorAll('.cell.falling').forEach(el => el.classList.remove('falling'));
+}
+
+// ─────────────────────── UI ───────────────────────
+function addScore(pts, matches) {
+  score += pts;
+  updateScore();
+  const boardRect = boardEl.getBoundingClientRect();
+  const el = document.createElement('div');
+  el.className = 'score-pop';
+  el.textContent = `+${pts}`;
+  el.style.left = (boardRect.left + boardRect.width / 2 - 30 + (Math.random() - 0.5) * 80) + 'px';
+  el.style.top  = (boardRect.top  + boardRect.height / 2 + (Math.random() - 0.5) * 60) + 'px';
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 900);
+}
+
+function showCombo(n) {
+  const el = document.createElement('div');
+  el.className = 'combo-text';
+  el.textContent = `${n} COMBO! 🔥`;
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 700);
+}
+
+function updateScore() {
+  scoreEl.textContent = score.toLocaleString();
+  if (score > best) { best = score; bestEl.textContent = best.toLocaleString(); }
+}
+
+function updateTimer() {
+  timerEl.textContent = timeLeft;
+  timerBar.style.width = (timeLeft / TOTAL_TIME * 100) + '%';
+  if (timeLeft <= 10) timerBar.style.background = 'linear-gradient(90deg, #ff4444, #cc0000)';
+}
+
+function wait(ms) { return new Promise(res => setTimeout(res, ms)); }
+</script>
+</body>
+</html>
